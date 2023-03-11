@@ -1,0 +1,251 @@
+import the necessary libraries
+-----------------------------------------------------------
+
+import nlp_utils
+import pandas as pd
+import seaborn as sns
+from sklearn.model_selection import train_test_split
+from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
+
+Loading dataset
+--------------------------------------------------------------
+
+df=pd.read_csv('train.csv')
+
+count the number of rows and columns in the dataset
+--------------------------------------------------------------
+df.shape
+
+
+increasing the width of the the columns
+-------------------------------------------------------------------
+pd.set_option('display.max_colwidth', -1)
+
+df['title']
+
+df['text']
+
+
+Print the the number of data points belonging to each categories
+-----------------------------------------------------------------
+
+df['label'].value_counts()
+
+
+Count the number of null values present in the dataset
+----------------------------------------------------------------
+
+df.isnull().sum()
+
+Remove the null values from the dataset
+-------------------------------------------------------------------
+df=df.dropna()
+
+
+Check no null values present in the dataset?
+
+
+Reset the index of the given series
+---------------------------------------------------
+df.reset_index(inplace=True)
+
+
+Text cleaning
+______________________________________________________________________________________________________
+
+import re
+import string
+
+
+Remove all alpha numeric letters
+_______________________________________________________________________________________________
+
+alphanumeric = lambda x: re.sub('\w*\d\w*', ' ', x)
+
+
+Convert all strings to lowercase 
+___________________________________________________________________________________________________________________________
+
+
+punc_lower = lambda x: re.sub('[%s]' % re.escape(string.punctuation), ' ', x.lower())
+
+
+
+Remove all '\n' in the string and replace it with a space
+________________________________________________________________________________________________________________________
+
+
+remove_n = lambda x: re.sub("\n", " ", x)
+
+Remove all non-ascii characters
+__________________________________________________________________________________________________________________
+
+
+remove_non_ascii = lambda x: re.sub(r'[^\x00-\x7f]',r' ', x)
+
+Apply all the lambda functions wrote previously through .map on the comments column
+_______________________________________________________________________________________________________________
+
+df['text'] = df['text'].map(alphanumeric).map(punc_lower).map(remove_n).map(remove_non_ascii)
+
+
+
+df['text']
+
+
+
+Removing stop words
+_________________________________________________________________________________________________
+
+
+import nltk
+nltk.download('stopwords')
+from nltk.corpus import stopwords
+stop_words=stopwords.words('english')
+#DataFrame.apply(Function_to_apply_to_each_row)
+def rem_stopword(data):
+  li=[]
+  for w in data.split():
+    if w not in stop_words:
+      li.append(w)
+  return " ".join(li)
+
+
+
+
+
+
+#Testing Removing stop words
+data="All the students of Third Year CSM are studying NLP "
+print(rem_stopword(data))
+
+
+
+Removing stop words and stemming the text
+___________________________________________________________________________________________
+
+from nltk.stem.porter import PorterStemmer
+import re
+ps = PorterStemmer()
+corpus = []
+for i in range(0, len(df)):
+    review = re.sub('[^a-zA-Z]', ' ', df['text'][i])
+    review = review.lower()
+    review = review.split()
+    
+    review = [ps.stem(word) for word in review if not word in stopwords.words('english')]
+    review = ' '.join(review)
+    corpus.append(review)
+
+
+
+Splitting the dataframe
+___________________________________________________________________________________________________________________
+
+
+We select the label column as Y
+
+
+Y=df['label']
+
+
+
+Making train and test data
+_____________________________________________________________________________________________________________
+
+Split the data into 70 percent train and 30 percent test
+
+
+
+X_train, X_test, Y_train, Y_test = train_test_split(df['text'], Y, test_size=0.30, random_state=40)
+
+
+
+
+Tfidf vectorizer
+____________________________________________________________________________________________________
+
+Applying tfidf to the data set
+
+
+tfidf_vect = TfidfVectorizer(stop_words = 'english',max_df=0.7)
+tfidf_train = tfidf_vect.fit_transform(X_train)
+tfidf_test = tfidf_vect.transform(X_test)
+
+
+Count vectorizer
+_____________________________________________________________________________________________________
+
+
+count_vect = CountVectorizer(stop_words = 'english')
+count_train = count_vect.fit_transform(X_train.values)
+count_test = count_vect.transform(X_test.values)
+
+
+
+ Naive Bayes model on tfidf
+________________________________________________________________________________________
+
+from sklearn.naive_bayes import MultinomialNB
+
+from sklearn import metrics
+from sklearn.metrics import accuracy_score
+
+
+clf = MultinomialNB() 
+clf.fit(tfidf_train, Y_train)                       
+pred = clf.predict(tfidf_test)                     
+score = metrics.accuracy_score(Y_test, pred)
+print("accuracy:   %0.3f" % score)
+cm = metrics.confusion_matrix(Y_test, pred)
+print(cm)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ Naive Bayes model on Count Vectorized
+__________________________________________________________________
+
+
+clf = MultinomialNB() 
+clf.fit(count_train, Y_train)                       
+pred1 = clf.predict(count_test)                    
+score = metrics.accuracy_score(Y_test, pred1)
+print("accuracy:   %0.3f" % score)
+cm2 = metrics.confusion_matrix(Y_test, pred1)
+print(cm2)
+
+
+
+
+
+
+
